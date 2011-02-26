@@ -126,6 +126,8 @@ for issue in sorted(issues):
         for event in issue.history:
             body = "%s\n%s" % (body, event)
 
+    print issue
+
     gh_issue = github.issues.open(
         REPO,
         title=issue.summary.encode('utf-8'),
