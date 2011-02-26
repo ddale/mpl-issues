@@ -1,4 +1,6 @@
 from xml.etree import ElementTree
+import time
+from github2.client import Github
 
 # project-specific info
 SF_IDS = {
@@ -9,8 +11,11 @@ SF_IDS = {
     'Support Requests': 560721,
 }
 
-s = 'https://sourceforge.net/tracker/?func=detail&aid=%d&group_id=%d&atid=%d'
+SF = 'https://sourceforge.net/tracker/?func=detail&aid=%d&group_id=%d&atid=%d'
 
+USER = 'darrendale'
+REPO = 'darrendale/mpl-issues'
+TOKEN = open('api_token.txt').readlines()[0][:-1]
 
 class Issue(object):
 
@@ -37,11 +42,14 @@ class Issue(object):
             else:
                 setattr(self, name, field.text)
 
-        self.sourceforge = s % (
+        self.sourceforge = SF % (
             int(self.artifact_id),
             SF_IDS['Project'],
             SF_IDS[self.artifact_type]
             )
+
+    def __str__(self):
+        return "%s: %s" % (self.artifact_type, self.summary.encode('utf-8'))
 
 
 class History(object):
@@ -54,6 +62,12 @@ class History(object):
             name = attrs['name']
             setattr(self, name, field.text)
 
+    def __str__(self):
+        return "* On %s, by %s: %s: %s" % (
+            time.ctime(int(self.entrydate)), self.mod_by, self.field_name,
+            self.old_value
+            )
+
 
 class Message(object):
 
@@ -65,11 +79,44 @@ class Message(object):
             name = attrs['name']
             setattr(self, name, field.text)
 
+    def __str__(self):
+        return "###On %s, %s wrote:\n%s" % (
+            time.ctime(int(self.adddate)), self.user_name, self.body
+            )
+
 
 root = ElementTree.parse('sf_export.xml').getroot()
 
 [artifacts, tasks, documents, news]  = root.getchildren()
 
-results = []
+issues = []
 for artifact in artifacts:
-    results.append(Issue(artifact))
+    issue = Issue(artifact)
+    if issue.status not in ('Deleted', 'Closed'):
+        issues.append(issue)
+
+github = Github(username=USER, api_token=TOKEN, requests_per_second=1)
+
+for issue in issues:
+    if issue.details[:4] in ('2 , ', '3 , ', '4 , '):
+        # this is spam
+        continue
+
+    body = "[Original report at SourceForge](%s)\n\n%s" % (
+        issue.sourceforge, issue.details.encode('utf-8')
+        )
+    if issue.messages:
+        body = "%s\n\n## SourceForge Comments\n" % body
+        for message in issue.messages:
+            body = "%s\n%s" % (body, message)
+    if issue.history:
+        body = "%s\n\n## SourceForge History\n" % body
+        for event in issue.history:
+            body = "%s\n%s" % (body, event)
+    print body
+
+    gh_issue = github.issues.open(
+        REPO,
+        title=issue.summary.encode('utf-8'),
+        body=body
+        )
