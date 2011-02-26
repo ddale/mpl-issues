@@ -11,6 +11,10 @@ SF_IDS = {
     'Support Requests': 560721,
 }
 
+issue_priority = {
+    'Feature Requests':1, 'Support Requests':2, 'Patches': 3, 'Bugs': 4
+    }
+
 SF = 'https://sourceforge.net/tracker/?func=detail&aid=%d&group_id=%d&atid=%d'
 
 USER = 'darrendale'
@@ -47,6 +51,13 @@ class Issue(object):
             SF_IDS['Project'],
             SF_IDS[self.artifact_type]
             )
+
+    def __cmp__(self, other):
+        s = issue_priority[self.artifact_type]
+        o = issue_priority[other.artifact_type]
+        if s==0:
+            return 0
+        return 1 if s > o else -1
 
     def __str__(self):
         return "%s: %s" % (self.artifact_type, self.summary.encode('utf-8'))
@@ -95,9 +106,10 @@ for artifact in artifacts:
     if issue.status not in ('Deleted', 'Closed'):
         issues.append(issue)
 
+
 github = Github(username=USER, api_token=TOKEN, requests_per_second=1)
 
-for issue in issues:
+for issue in sorted(issues):
     if issue.details[:4] in ('2 , ', '3 , ', '4 , '):
         # this is spam
         continue
@@ -113,7 +125,6 @@ for issue in issues:
         body = "%s\n\n### SourceForge History\n" % body
         for event in issue.history:
             body = "%s\n%s" % (body, event)
-    print body
 
     gh_issue = github.issues.open(
         REPO,
