@@ -12,7 +12,7 @@ SF_IDS = {
 }
 
 issue_priority = {
-    'Feature Requests':1, 'Support Requests':2, 'Patches': 3, 'Bugs': 4
+    'Feature Requests':4, 'Support Requests':3, 'Patches': 2, 'Bugs': 1
     }
 
 SF = 'https://sourceforge.net/tracker/?func=detail&aid=%d&group_id=%d&atid=%d'
