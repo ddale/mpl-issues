@@ -106,11 +106,11 @@ for issue in issues:
         issue.sourceforge, issue.details.encode('utf-8')
         )
     if issue.messages:
-        body = "%s\n\n### SourceForge Comments\n" % body
+        body = "%s\n\n###SourceForge Comments\n" % body
         for message in issue.messages:
             body = "%s\n%s" % (body, message)
     if issue.history:
-        body = "%s\n\n### SourceForge History\n" % body
+        body = "%s\n\n###SourceForge History\n" % body
         for event in issue.history:
             body = "%s\n%s" % (body, event)
     print body
